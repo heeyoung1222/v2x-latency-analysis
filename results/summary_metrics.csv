@@ -1,0 +1,9 @@
+"metric","value"
+"sample_size",1500
+"mean_latency_ms",75.52
+"median_latency_ms",75.7
+"sd_latency_ms",12.38
+"high_latency_share",0.3673
+"mean_speed_kmh",68.14
+"mean_signal_strength_dbm",-83.39
+"mean_network_stability_index",0.667

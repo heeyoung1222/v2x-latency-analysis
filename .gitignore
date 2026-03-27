@@ -1,0 +1,7 @@
+data/*
+results/*
+!data/.gitkeep
+!data/simulated_v2x_dataset.csv
+!results/.gitkeep
+!results/*.png
+!results/*.csv
