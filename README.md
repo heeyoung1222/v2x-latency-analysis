@@ -1,103 +1,213 @@
-# V2X Latency Analysis
+# V2X Latency Prediction with Temporal Graph Neural Networks
 
-An R-based analysis project for studying communication latency patterns in autonomous driving and V2X scenarios.
+Python-based research project for predicting V2X communication latency and detecting high-risk delay events from real C-V2X traces.
 
-## Overview
+This project started as an R-based exploratory analysis of V2X latency and was extended into a deep learning research pipeline using PyTorch, Temporal Graph Neural Networks, and real SEE-V2X receiver logs.
 
-This repository presents a reproducible analysis workflow for exploring how vehicle speed, signal strength, network stability, traffic density, and scheduling strategy can influence V2X communication latency.
+## Project Summary
 
-Because the original raw dataset used in the early coursework version of this project is not available in the repository, this version has been rebuilt as a clean and reproducible demo pipeline using a simulated V2X dataset. The goal is to preserve the analytical direction of the project while making the repository easier to understand, run, and extend.
+V2X communication latency is a safety-critical factor in autonomous driving and connected mobility. This repository studies whether temporal and graph-aware deep learning models can predict communication delay and identify high-latency risk from C-V2X network traces.
 
-## Objectives
+The main model represents transmitter-to-receiver communication links as graph nodes, groups packet traces into timestamp bins, and learns both temporal patterns and link-level interactions.
 
-- Explore the distribution of V2X latency values
-- Examine relationships between latency and key network or driving variables
-- Segment network conditions with clustering
-- Model the probability of high-latency events
-- Produce repository-ready result figures from a single analysis script
+## Research Questions
+
+- Can deep learning predict V2X communication latency from real C-V2X receiver traces?
+- Does a Temporal GNN outperform non-graph baselines such as MLP and GRU?
+- How does high-latency risk detection change under 50 ms, 80 ms, and 100 ms thresholds?
+- How does model behavior change across SEE-V2X `1_tx`, `2_tx`, and `4_tx` communication settings?
+
+## Dataset
+
+The real-data experiments use the SEE-V2X C-V2X dataset.
+
+- Project page: https://cisl.ucr.edu/SEE-V2X/
+- Dataset/code description: https://github.com/UCR-CISL/SEE-V2X/
+
+The repository does **not** include the full SEE-V2X dataset because the raw archive is large and distributed separately by the dataset authors. The code includes a converter for SEE-V2X `rx_*.csv` receiver traces and a tiny SEE-V2X-style fixture under `examples/` for pipeline validation.
+
+## Method
+
+The completed pipeline includes:
+
+1. Convert SEE-V2X receiver logs into a canonical temporal CSV.
+2. Group records into timestamp bins.
+3. Represent each communication link, such as `t1->t3`, as a graph node.
+4. Train multi-task models for:
+   - latency regression
+   - high-latency risk classification
+5. Compare Temporal GNN against GRU and MLP baselines.
+6. Evaluate threshold sensitivity and Tx-complexity settings.
+
+## Models
+
+| Model | Description |
+|---|---|
+| MLP baseline | Uses latest node features only |
+| GRU baseline | Models each communication link over time without graph attention |
+| Temporal GNN | Uses graph attention within each time step and GRU temporal encoding |
+
+## Key Results
+
+### Model Comparison
+
+SEE-V2X `4_tx` full experiment, 50 ms high-latency threshold:
+
+| Model | MAE (ms) | RMSE (ms) | R2 | Best F1 |
+|---|---:|---:|---:|---:|
+| Temporal GNN | 9.51 | 16.42 | 0.318 | 0.452 |
+| GRU baseline | 9.98 | 16.85 | 0.282 | 0.442 |
+| MLP baseline | 10.72 | 18.44 | 0.140 | 0.366 |
+
+![Model comparison](results/figures/model_comparison_bar.png)
+
+### Risk Threshold Sensitivity
+
+Temporal GNN on SEE-V2X `4_tx`:
+
+| Risk Threshold | MAE (ms) | RMSE (ms) | R2 | Positive Rate | Best F1 |
+|---|---:|---:|---:|---:|---:|
+| 50 ms | 9.51 | 16.42 | 0.318 | 0.093 | 0.452 |
+| 80 ms | 9.60 | 16.55 | 0.308 | 0.025 | 0.308 |
+| 100 ms | 9.54 | 16.18 | 0.338 | 0.009 | 0.293 |
+
+![Threshold sweep](results/figures/threshold_sweep_curve.png)
+
+### Tx-Complexity Comparison
+
+50 ms high-latency threshold:
+
+| Setting | Links | Rows | MAE (ms) | RMSE (ms) | R2 | Best F1 |
+|---|---:|---:|---:|---:|---:|---:|
+| `1_tx` | 1 | 181,683 | 7.89 | 14.36 | 0.313 | 0.533 |
+| `2_tx` | 2 | 348,108 | 7.01 | 11.54 | 0.263 | 0.377 |
+| `4_tx` | 9 | 1,530,040 | 9.51 | 16.42 | 0.318 | 0.452 |
+
+![Tx complexity](results/tx_complexity_comparison.png)
+
+The Tx-complexity experiment should be interpreted as empirical behavior across SEE-V2X configurations, not as a perfectly controlled causal study of link count alone.
+
+## Dashboard
+
+The Streamlit dashboard visualizes:
+
+- predicted vs actual latency
+- prediction error distribution
+- model comparison
+- risk-threshold sweep
+- `1_tx`, `2_tx`, and `4_tx` comparison
+
+Run it with:
+
+```bash
+python -m streamlit run app/streamlit_dashboard.py
+```
+
+Then open:
+
+```text
+http://localhost:8501
+```
 
 ## Repository Structure
 
 ```text
 v2x-latency-analysis/
-├─ data/
-│  └─ simulated_v2x_dataset.csv
-├─ results/
-│  ├─ cluster_map.png
-│  ├─ latency_distribution.png
-│  ├─ model_coefficients.png
-│  ├─ speed_vs_latency.png
-│  └─ summary_metrics.csv
-├─ scripts/
-│  └─ run_analysis.R
-├─ .gitignore
-└─ README.md
+|-- app/
+|   |-- streamlit_dashboard.py
+|-- data/
+|   |-- simulated_v2x_dataset.csv
+|-- docs/
+|   |-- real_temporal_dataset_workflow.md
+|   |-- temporal_gnn_research_plan.md
+|-- examples/
+|   |-- see_v2x_sample/
+|-- results/
+|   |-- experiment_summary.csv
+|   |-- model_comparison_summary.csv
+|   |-- tx_complexity_summary.csv
+|   |-- figures/
+|-- scripts/
+|   |-- create_visualizations.py
+|   |-- prepare_see_v2x_dataset.py
+|   |-- run_analysis.R
+|   |-- train_temporal_gnn.py
+|-- src/
+|   |-- v2x_tgnn/
+|       |-- data.py
+|       |-- models.py
+|       |-- see_v2x.py
+|       |-- train.py
+|-- requirements.txt
+|-- README.md
 ```
 
-## Method
+## Quick Start
 
-The analysis pipeline includes the following steps:
-
-1. Generate a reproducible simulated V2X dataset
-2. Inspect descriptive statistics
-3. Visualize the latency distribution
-4. Visualize the relationship between speed and latency
-5. Cluster network states using K-means
-6. Fit a logistic regression model for high-latency risk
-7. Export figures and summary tables
-
-## Variables
-
-The simulated dataset contains the following variables:
-
-- `speed_kmh`
-- `signal_strength_dbm`
-- `network_stability_index`
-- `vehicle_density`
-- `scheduling_algorithm`
-- `latency_ms`
-- `high_latency`
-
-## Results
-
-### Latency Distribution
-
-![Latency distribution](results/latency_distribution.png)
-
-### Speed vs. Latency
-
-![Speed vs latency](results/speed_vs_latency.png)
-
-### Cluster Map
-
-![Cluster map](results/cluster_map.png)
-
-### Model Coefficients
-
-![Model coefficients](results/model_coefficients.png)
-
-## How to Run
-
-Use Rscript to execute the analysis pipeline:
+Install dependencies:
 
 ```bash
-Rscript scripts/run_analysis.R
+python -m pip install -r requirements.txt
 ```
 
-On this machine, the script was executed with:
+Run the simulated-data smoke test:
 
 ```bash
-"C:/Program Files/R/R-4.5.0/bin/Rscript.exe" scripts/run_analysis.R
+python scripts/train_temporal_gnn.py --epochs 5
 ```
 
-## Notes
+Generate presentation figures:
 
-- This repository is written entirely in English for a more professional presentation.
-- The current analysis is based on simulated data so that the repository remains runnable without any missing private files.
-- If the original dataset becomes available later, the script can be adapted to load the real CSV instead of generating synthetic data.
+```bash
+python scripts/create_visualizations.py
+```
+
+Launch the dashboard:
+
+```bash
+python -m streamlit run app/streamlit_dashboard.py
+```
+
+## Using SEE-V2X Data
+
+After downloading and decompressing SEE-V2X, convert receiver traces:
+
+```bash
+python scripts/prepare_see_v2x_dataset.py ^
+  --input-dir "C:/path/to/SEE-V2X/indoor_allconfigs/4_tx" ^
+  --output data/see_v2x_4tx_temporal.csv ^
+  --high-latency-ms 50
+```
+
+Train the Temporal GNN:
+
+```bash
+python scripts/train_temporal_gnn.py ^
+  --model-type tgnn ^
+  --dataset-type temporal ^
+  --data data/see_v2x_4tx_temporal.csv ^
+  --output-dir results/see_v2x_4tx_full_thr50_real ^
+  --epochs 30 ^
+  --batch-size 128 ^
+  --seq-len 6 ^
+  --num-nodes 8 ^
+  --stride 64 ^
+  --time-bin-ms 100 ^
+  --min-valid-targets 4
+```
+
+See [docs/real_temporal_dataset_workflow.md](docs/real_temporal_dataset_workflow.md) for the full real-data workflow.
+
+## Important Notes
+
+- Large raw SEE-V2X files are intentionally ignored by Git.
+- Generated model checkpoints are ignored and can be regenerated.
+- Public result CSV/PNG files are kept for reproducibility and GitHub presentation.
+- The included `examples/see_v2x_sample/` files are only for testing the converter and training path.
+- The original R script remains in `scripts/run_analysis.R` to preserve the starting point of the project.
 
 ## Author
 
 Heeyoung Jeong
 
-Interests: Intelligent Transportation Systems, V2X, autonomous driving, traffic safety, and data analysis
+Research interests: Intelligent Transportation Systems, V2X, autonomous driving, traffic safety, data analysis, and deep learning.

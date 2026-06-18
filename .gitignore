@@ -1,7 +1,12 @@
 data/*
 results/*
+__pycache__/
+*.py[cod]
+streamlit_dashboard*.log
 !data/.gitkeep
 !data/simulated_v2x_dataset.csv
 !results/.gitkeep
 !results/*.png
 !results/*.csv
+!results/figures/
+!results/figures/*.png
