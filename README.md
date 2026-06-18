@@ -205,9 +205,3 @@ See [docs/real_temporal_dataset_workflow.md](docs/real_temporal_dataset_workflow
 - Public result CSV/PNG files are kept for reproducibility and GitHub presentation.
 - The included `examples/see_v2x_sample/` files are only for testing the converter and training path.
 - The original R script remains in `scripts/run_analysis.R` to preserve the starting point of the project.
-
-## Author
-
-Heeyoung Jeong
-
-Research interests: Intelligent Transportation Systems, V2X, autonomous driving, traffic safety, data analysis, and deep learning.
